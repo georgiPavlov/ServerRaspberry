@@ -56,7 +56,7 @@ public class Mp4Player extends MediaFinal implements Device{
     @Override
     public void backwardStream() {
         if(!player.getCurrentTime().greaterThanOrEqualTo(player.getTotalDuration())) {
-            player.seek(player.getCurrentTime().multiply(9.998));
+            player.seek(player.getCurrentTime().multiply(0.998));
         }
     }
 }

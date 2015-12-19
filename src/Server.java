@@ -1,30 +1,24 @@
-import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
-import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Iterator;
+import java.util.Scanner;
 
 
 /**
  * Created by georgipavlov on 19.12.15.
  */
-public class Server extends Application {
+public class Server {
     ServerSocket server = null;
     Socket socket = null;
     ObjectOutputStream outputStream;
@@ -39,12 +33,14 @@ public class Server extends Application {
     MediaFinal bar;
 
     public void runServer() {
+        Scanner scanner = null ;
         try {
-            server = new ServerSocket(6656);
+            server = new ServerSocket(6699 );
             System.out.println("Waiting for connection");
             socket = server.accept();
             outputStream = new ObjectOutputStream(socket.getOutputStream());
-            inputStream = new ObjectInputStream(socket.getInputStream());
+            //inputStream = new ObjectInputStream(socket.getInputStream());
+            scanner = new Scanner(socket.getInputStream());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -55,9 +51,10 @@ public class Server extends Application {
 
         while (run) {
             try {
-                in = inputStream.readUTF();
-                System.out.println(in);
-                command = new JSONObject(in);
+                //in = inputStream.readUTF();
+                String resu = scanner.nextLine();
+                System.out.println(resu);
+                command = new JSONObject(resu);
                 commandProceed(command);
 
             } catch (IOException e) {
@@ -71,13 +68,14 @@ public class Server extends Application {
         }
     }
 
-
+    String fullnamel=null;
     private void commandProceed(JSONObject command) throws Exception {
         String result = null;
         Iterator<?> keys = command.keys();
         String it = null;
         File file = new File("/home/georgipavlov");
         Robot r = new Robot();
+
 
 
 
@@ -88,7 +86,7 @@ public class Server extends Application {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            if (it != null && !it.equals("v")) {
+            if (it != null && !it.equals("gesture")) {
                 break;
             }
         }
@@ -100,18 +98,21 @@ public class Server extends Application {
 
 
         String[] fileFormat = it.split("[.]+");
+
         if (fileFormat[fileFormat.length - 1].equals("mp3") && !onTheFile) {
-            thisDevice = new Mp3Player(path);
-            onTheFile = true;
+           // thisDevice = new Mp3Player(path);
+            //onTheFile = true;
         } else if (!onTheFile) {
-            doIt = true;
-            start(primary);
-            thisDevice = new Mp4Player(player, path);
-            doIt = false;
-            onTheFile = false;
+            //doIt = true;
+           // start(primary);
+           // thisDevice = new Mp4Player(player, path);
+            //doIt = false;
+            //onTheFile = false;
         }
         try {
             result = command.getString("gesture");
+            fullnamel = command.getString("full_name");
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -121,30 +122,36 @@ public class Server extends Application {
                     r.keyPress(KeyEvent.VK_LEFT);
                     r.keyRelease(KeyEvent.VK_LEFT);
                    // thisDevice.forwardStream();
+                    System.out.println("left" + it);
                     break;
                 case "right"://input start
                     r.keyPress(KeyEvent.VK_RIGHT);
                     r.keyRelease(KeyEvent.VK_RIGHT);
                    // thisDevice.backwardStream();
+                    System.out.println("right" + it);
                     break;
                 case "up"://input start
                     r.keyPress(KeyEvent.VK_UP);
                     r.keyRelease(KeyEvent.VK_UP);
                    // thisDevice.pauseStream();
+                    System.out.println("up" + it );
                     break;
                 case "down"://input start
                     r.keyPress(KeyEvent.VK_DOWN);
                     r.keyRelease(KeyEvent.VK_DOWN);
                     //thisDevice.continueStream();
+                    System.out.println("down" + it);
                     break;
                 case "open"://input start
-                    String[] res = path.split("[open]+");
-                    if(res[1] == ""){
+                    String[] res = it.split("[open]+");
+                    if(fullnamel == null){
                         path = it;
                         r.keyPress(KeyEvent.VK_ENTER);
                         r.keyRelease(KeyEvent.VK_ENTER);
-                    }else if(!res[1].equals("My Computer")){
+                        System.out.println("Му computer"+  it);
+                    }else{
                         file = new File(res[1]);
+                        System.out.println("Му computer 2" + it);
                     }
                     break;
                 case "stop":
@@ -157,32 +164,46 @@ public class Server extends Application {
     }
 
     public static void main(String[] args) {
+
         Server s = new Server();
+        s.openPLayer();
         s.runServer();
-        launch(args);
+        //launch(args);
 
     }
 
     boolean doIt = false;
     private Stage primary;
 
-    @Override
-    public void start(Stage primaryStage) throws Exception {
-        primary = primaryStage;
-        if (doIt) {
-            BorderPane l = new BorderPane();
-            media = new Media(path);
-            player = new MediaPlayer(media);
-            view = new MediaView(player);
-            mpane = new Pane();
-            mpane.getChildren().add(view);
-            l.setCenter(mpane);
-            bar = new MediaFinal(player);
-            l.setBottom(bar);
-            player.play();
-            Scene scene = new Scene(l, 720, 480, Color.BLACK);
-            primaryStage.setScene(scene);
-            primaryStage.show();
+
+
+    public void openPLayer(){
+        ProcessBuilder pb = new ProcessBuilder("bash", "-c", "omxplayer -r -o hdmi /home/georgipavlov/Raspberry/abs.mp4");
+        Process p = null;
+        try {
+            p = pb.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        StringBuffer sb = new StringBuffer();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(
+                p.getInputStream()));
+
+        String line = null;
+        try {
+            line = reader.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        sb.append(line);
+        while (line != null) {
+            try {
+                line = reader.readLine();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            sb.append(line);
         }
     }
+
 }
