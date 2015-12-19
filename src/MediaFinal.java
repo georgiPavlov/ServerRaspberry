@@ -12,9 +12,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.media.MediaPlayer;
 
-
-
-
 public class MediaFinal extends HBox  {
     Slider time  = new Slider();
     Slider vol = new Slider();

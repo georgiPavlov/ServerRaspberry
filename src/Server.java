@@ -10,6 +10,9 @@ import javafx.stage.Stage;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -18,11 +21,10 @@ import java.net.Socket;
 import java.util.Iterator;
 
 
-
 /**
  * Created by georgipavlov on 19.12.15.
  */
-public class Server extends Application{
+public class Server extends Application {
     ServerSocket server = null;
     Socket socket = null;
     ObjectOutputStream outputStream;
@@ -36,23 +38,25 @@ public class Server extends Application{
     Pane mpane;
     MediaFinal bar;
 
-    public void runServer(){
+    public void runServer() {
         try {
-            server = new ServerSocket(6666);
+            server = new ServerSocket(6656);
+            System.out.println("Waiting for connection");
             socket = server.accept();
             outputStream = new ObjectOutputStream(socket.getOutputStream());
             inputStream = new ObjectInputStream(socket.getInputStream());
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Server started");
-        boolean run  =true;
-        JSONObject command  =null;
+        System.out.println("Server connected");
+        boolean run = true;
+        JSONObject command = null;
         String in;
 
-        while (run){
+        while (run) {
             try {
                 in = inputStream.readUTF();
+                System.out.println(in);
                 command = new JSONObject(in);
                 commandProceed(command);
 
@@ -69,98 +73,116 @@ public class Server extends Application{
 
 
     private void commandProceed(JSONObject command) throws Exception {
-        String result=null;
+        String result = null;
         Iterator<?> keys = command.keys();
-        String it=null;
+        String it = null;
+        File file = new File("/home/georgipavlov");
+        Robot r = new Robot();
 
 
-        while( keys.hasNext() ) {
-            String key = (String)keys.next();
+
+        while (keys.hasNext()) {
+            String key = (String) keys.next();
             try {
                 it = (String) command.get(key);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            if (it != null && !it.equals("command")  ) {
+            if (it != null && !it.equals("v")) {
                 break;
             }
         }
-        if(it != null && onTheFile){
+        if (it != null && !onTheFile) {
             path += "/" + it;
-        }else if(path.equals(it)){
-            onTheFile =true;
+        } else if (path.equals(it)) {
+            onTheFile = true;
         }
 
 
         String[] fileFormat = it.split("[.]+");
-        if(fileFormat[fileFormat.length-1].equals("mp3") && !onTheFile){
+        if (fileFormat[fileFormat.length - 1].equals("mp3") && !onTheFile) {
             thisDevice = new Mp3Player(path);
-            onTheFile =true;
-        }else if(!onTheFile) {
+            onTheFile = true;
+        } else if (!onTheFile) {
+            doIt = true;
             start(primary);
-            thisDevice = new Mp4Player(player,path);
-            doIt =true;
-            onTheFile =false;
+            thisDevice = new Mp4Player(player, path);
+            doIt = false;
+            onTheFile = false;
         }
         try {
-               result = command.getString("command");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            if(result != null){
-                switch (result){
-                    case "forward"://input start
-                        thisDevice.forwardStream();
-                        break;
-                    case "backward"://input start
-                        thisDevice.backwardStream();
-                        break;
-                    case "pause"://input start
-                        thisDevice.pauseStream();
-                        break;
-                    case "continue"://input start
-                        thisDevice.continueStream();
-                        break;
-                    case "open"://input start
-                        thisDevice.openStream(0);
-                        break;
-                    case "stop":
-                        onTheFile = false;
+            result = command.getString("gesture");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        if (result != null) {
+            switch (result) {
+                case "left"://input start
+                    r.keyPress(KeyEvent.VK_LEFT);
+                    r.keyRelease(KeyEvent.VK_LEFT);
+                   // thisDevice.forwardStream();
+                    break;
+                case "right"://input start
+                    r.keyPress(KeyEvent.VK_RIGHT);
+                    r.keyRelease(KeyEvent.VK_RIGHT);
+                   // thisDevice.backwardStream();
+                    break;
+                case "up"://input start
+                    r.keyPress(KeyEvent.VK_UP);
+                    r.keyRelease(KeyEvent.VK_UP);
+                   // thisDevice.pauseStream();
+                    break;
+                case "down"://input start
+                    r.keyPress(KeyEvent.VK_DOWN);
+                    r.keyRelease(KeyEvent.VK_DOWN);
+                    //thisDevice.continueStream();
+                    break;
+                case "open"://input start
+                    String[] res = path.split("[open]+");
+                    if(res[1] == ""){
+                        path = it;
+                        r.keyPress(KeyEvent.VK_ENTER);
+                        r.keyRelease(KeyEvent.VK_ENTER);
+                    }else if(!res[1].equals("My Computer")){
+                        file = new File(res[1]);
+                    }
+                    break;
+                case "stop":
+                    onTheFile = false;
 
-                }
             }
-
+        }
 
 
     }
 
     public static void main(String[] args) {
-        Server s= new Server();
+        Server s = new Server();
         s.runServer();
         launch(args);
 
     }
 
-     boolean doIt = false;
-    private  Stage primary;
+    boolean doIt = false;
+    private Stage primary;
+
     @Override
     public void start(Stage primaryStage) throws Exception {
         primary = primaryStage;
-        if(doIt){
-        BorderPane l= new BorderPane();
-        media = new Media(path);
-        player = new MediaPlayer(media);
-        view = new MediaView(player);
-        mpane = new Pane();
-        mpane.getChildren().add(view);
-        l.setCenter(mpane);
-        bar = new MediaFinal(player);
-        l.setBottom(bar);
-        player.play();
-        PlayerFinal f= new PlayerFinal("non");
-        Scene scene = new Scene(f,720,480, Color.BLACK);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        if (doIt) {
+            BorderPane l = new BorderPane();
+            media = new Media(path);
+            player = new MediaPlayer(media);
+            view = new MediaView(player);
+            mpane = new Pane();
+            mpane.getChildren().add(view);
+            l.setCenter(mpane);
+            bar = new MediaFinal(player);
+            l.setBottom(bar);
+            player.play();
+            Scene scene = new Scene(l, 720, 480, Color.BLACK);
+            primaryStage.setScene(scene);
+            primaryStage.show();
         }
     }
 }
