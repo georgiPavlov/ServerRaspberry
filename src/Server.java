@@ -1,3 +1,12 @@
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.stage.Stage;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -13,7 +22,7 @@ import java.util.Iterator;
 /**
  * Created by georgipavlov on 19.12.15.
  */
-public class Server {
+public class Server extends Application{
     ServerSocket server = null;
     Socket socket = null;
     ObjectOutputStream outputStream;
@@ -21,6 +30,11 @@ public class Server {
     public static String path;
     boolean onTheFile = false;
     Device thisDevice;
+    Media media;
+    MediaPlayer player;
+    MediaView view;
+    Pane mpane;
+    MediaFinal bar;
 
     public void runServer(){
         try {
@@ -46,13 +60,15 @@ public class Server {
                 e.printStackTrace();
             } catch (JSONException e) {
                 e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
         }
     }
 
 
-    private void commandProceed(JSONObject command){
+    private void commandProceed(JSONObject command) throws Exception {
         String result=null;
         Iterator<?> keys = command.keys();
         String it=null;
@@ -71,6 +87,8 @@ public class Server {
         }
         if(it != null && onTheFile){
             path += "/" + it;
+        }else if(path.equals(it)){
+            onTheFile =true;
         }
 
 
@@ -79,7 +97,9 @@ public class Server {
             thisDevice = new Mp3Player(path);
             onTheFile =true;
         }else if(!onTheFile) {
-            //thisDevice = new Mp4Player(path);
+            start(primary);
+            thisDevice = new Mp4Player(player,path);
+            doIt =true;
             onTheFile =false;
         }
         try {
@@ -114,5 +134,33 @@ public class Server {
 
     }
 
+    public static void main(String[] args) {
+        Server s= new Server();
+        s.runServer();
+        launch(args);
 
+    }
+
+     boolean doIt = false;
+    private  Stage primary;
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        primary = primaryStage;
+        if(doIt){
+        BorderPane l= new BorderPane();
+        media = new Media(path);
+        player = new MediaPlayer(media);
+        view = new MediaView(player);
+        mpane = new Pane();
+        mpane.getChildren().add(view);
+        l.setCenter(mpane);
+        bar = new MediaFinal(player);
+        l.setBottom(bar);
+        player.play();
+        PlayerFinal f= new PlayerFinal("non");
+        Scene scene = new Scene(f,720,480, Color.BLACK);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+        }
+    }
 }
